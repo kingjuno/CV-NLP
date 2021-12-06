@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 from torch.utils import data
 import torchvision
+import numpy as np
 from torchvision.transforms import ToTensor
 import matplotlib.pyplot as plt
 
@@ -76,3 +77,30 @@ def plot_results(hist):
     plt.plot(hist['train_loss'], label='Training loss')
     plt.plot(hist['val_loss'], label='Validation loss')
     plt.legend()
+
+def plot_convolution(t,title=''):
+    with torch.no_grad():
+        c = nn.Conv2d(kernel_size=(3,3),out_channels=1,in_channels=1)
+        c.weight.copy_(t)
+        fig, ax = plt.subplots(2,6,figsize=(8,3))
+        fig.suptitle(title,fontsize=16)
+        for i in range(5):
+            im = train_set[i][0]
+            ax[0][i].imshow(im[0])
+            ax[1][i].imshow(c(im.unsqueeze(0))[0][0])
+            ax[0][i].axis('off')
+            ax[1][i].axis('off')
+        ax[0,5].imshow(t)
+        ax[0,5].axis('off')
+        ax[1,5].axis('off')
+        plt.show()
+
+def display_dataset(dataset, n=10,classes=None):
+    fig,ax = plt.subplots(1,n,figsize=(15,3))
+    mn = min([dataset[i][0].min() for i in range(n)])
+    mx = max([dataset[i][0].max() for i in range(n)])
+    for i in range(n):
+        ax[i].imshow(np.transpose((dataset[i][0]-mn)/(mx-mn),(1,2,0)))
+        ax[i].axis('off')
+        if classes:
+            ax[i].set_title(classes[dataset[i][1]])
