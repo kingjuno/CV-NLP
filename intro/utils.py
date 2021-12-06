@@ -10,6 +10,10 @@ import torchvision
 import numpy as np
 from torchvision.transforms import ToTensor
 import matplotlib.pyplot as plt
+from PIL import Image
+import glob
+import os
+import zipfile 
 
 default_device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -104,3 +108,38 @@ def display_dataset(dataset, n=10,classes=None):
         ax[i].axis('off')
         if classes:
             ax[i].set_title(classes[dataset[i][1]])
+
+def check_image(fn):
+    try:
+        im = Image.open(fn)
+        im.verify()
+        return True
+    except:
+        return False
+    
+def check_image_dir(path):
+    for fn in glob.glob(path):
+        if not check_image(fn):
+            print("Corrupt image: {}".format(fn))
+            os.remove(fn)
+
+def train_long(net,train_loader,test_loader,epochs=5,lr=0.01,optimizer=None,loss_fn = nn.NLLLoss(),print_freq=10):
+    optimizer = optimizer or torch.optim.Adam(net.parameters(),lr=lr)
+    for epoch in range(epochs):
+        net.train()
+        total_loss,acc,count = 0,0,0
+        for i, (features,labels) in enumerate(train_loader):
+            lbls = labels.to(default_device)
+            optimizer.zero_grad()
+            out = net(features.to(default_device))
+            loss = loss_fn(out,lbls)
+            loss.backward()
+            optimizer.step()
+            total_loss+=loss
+            _,predicted = torch.max(out,1)
+            acc+=(predicted==lbls).sum()
+            count+=len(labels)
+            if i%print_freq==0:
+                print("Epoch {}, minibatch {}: train acc = {}, train loss = {}".format(epoch,i,acc.item()/count,total_loss.item()/count))
+        vl,va = validate(net,test_loader,loss_fn)
+        print("Epoch {} done, validation acc = {}, validation loss = {}".format(epoch,va,vl))
